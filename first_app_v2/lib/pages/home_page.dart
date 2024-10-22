@@ -1,9 +1,11 @@
 
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:first_app_v2/models/todo.dart';
 import 'package:first_app_v2/services/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,15 +15,20 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final TextEditingController _textEditingController = TextEditingController();
   final DatabaseService _databaseService = DatabaseService();
 
   @override
-  widget build(BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: _appBar(),
       body: _buildUI(),
-
+      floatingActionButton: FloatingActionButton(
+        onPressed: _displayTextInputDialog, 
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
@@ -53,9 +60,9 @@ class _HomePageState extends State<HomePage> {
       width: MediaQuery.sizeOf(context).width,
       child: StreamBuilder(
         stream: _databaseService.getTodos(),
-        builder: (context, snapchot) {
+        builder: (context, snapshot) {
           List todos = snapshot.data?.docs ?? [];
-          if (todo.isEmpty) {
+          if (todos.isEmpty) {
             return const Center (
               child: Text ("Add a todo!"),
               );
@@ -67,14 +74,34 @@ class _HomePageState extends State<HomePage> {
               Todo todo = todos[index].data(); 
               // access todo data in here
               String todoId = todos[index].id;
+              print(todoId); 
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 10,
                 ), 
                 child: ListTile(
-                  tileColor: Theme.of(context).colorScheme.primaryContainer),
-                  // TODO: Checkpoint
+                  tileColor: Theme.of(context).colorScheme.primaryContainer,
+                  title: Text(todo.task),
+                  subtitle: Text(
+                    DateFormat("dd-MM-yyy h:mm a").format(
+                      todo.updatedOn.toDate(),
+                    )
+                  ),
+                  trailing: Checkbox(
+                    value: todo.isDone, 
+                    onChanged: (value) {
+                      Todo updatedTodo = todo.copyWith(
+                        isDone: !todo.isDone, 
+                        updatedOn: Timestamp.now()
+                      );
+                      _databaseService.updatedTodo(todoId, updatedTodo);
+                    }
+                  ),
+                  onLongPress: () {
+                    _databaseService.deleteTodo(todoId);
+                  } ,
+
                 ),
               );
             },
@@ -82,5 +109,38 @@ class _HomePageState extends State<HomePage> {
         },
       ),
     );
+  }
+
+  void _displayTextInputDialog() async {
+    return showDialog(
+        context: context, 
+        builder: (context){
+          return AlertDialog(
+            title: const Text('Add a Todo'),
+            content: TextField(
+                controller: _textEditingController,
+                decoration: const InputDecoration(hintText: "Todo..."),
+              ),
+            actions: <Widget>[
+              MaterialButton(
+                color: Theme.of(context).colorScheme.primary,
+                textColor: Colors.white,
+                child: const Text('Ok'),
+                onPressed: () {
+                  Todo todo = Todo(
+                      task: _textEditingController.text, 
+                      isDone: false, 
+                      createdOn: Timestamp.now(), 
+                      updatedOn: Timestamp.now(),
+                    );
+                  _databaseService.addTodo(todo);
+                  Navigator.pop(context);
+                  _textEditingController.clear();
+                },
+              )
+            ]
+          );
+        }
+      );
   }
 }

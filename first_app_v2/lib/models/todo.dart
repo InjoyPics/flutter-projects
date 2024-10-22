@@ -1,18 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
-// TODO: Need to come back to this and figure out whats being done in each section. 9 min mark
+// import 'package:flutter/foundation.dart';
 class Todo {
   String task;
   bool isDone;
   Timestamp createdOn;
   Timestamp updatedOn;
 
-  Todo([
+  Todo({
     required this.task,
     required this.isDone,
     required this.createdOn,
     required this.updatedOn,
-  ]);
+  });
 
   Todo.fromJson(Map<String, Object> json) 
     : this(
@@ -41,7 +40,7 @@ class Todo {
       'task': task,
       'isDone': isDone,
       'createdOn': createdOn,
-      'updatedOn:' updatedOn,
+      'updatedOn': updatedOn,
     };
   }
 
